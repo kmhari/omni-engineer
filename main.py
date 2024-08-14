@@ -23,7 +23,7 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.application.current import get_app
-
+import inquirer  # P3a00
 
 
 is_diff_on = True  
@@ -670,11 +670,16 @@ async def handle_discover_command(keyword):
     
     print_colored(f"Found {len(matching_files)} files with the keyword '{keyword}':", Fore.CYAN)
     
-    selected_files = []
-    for idx, file in enumerate(matching_files, 1):
-        user_input = await get_input_async(f"[{idx}] {file} (checked by default, uncheck with 'n'): ")
-        if user_input.lower() != 'n':
-            selected_files.append(file)
+    questions = [
+        inquirer.Checkbox(
+            'files',
+            message="Select files to add to context (checked by default):",
+            choices=[(file, True) for file in matching_files]
+        )
+    ]
+    
+    answers = inquirer.prompt(questions)
+    selected_files = answers['files']
     
     if not selected_files:
         print_colored("No files selected to add to the context.", Fore.YELLOW)
