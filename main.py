@@ -669,15 +669,19 @@ async def handle_discover_command(keyword):
         return
     
     print_colored(f"Found {len(matching_files)} files with the keyword '{keyword}':", Fore.CYAN)
-    for idx, file in enumerate(matching_files, 1):
-        print_colored(f"{idx}. {file}", Fore.CYAN)
     
-    confirm = await get_input_async("Do you want to add these files to the context? (y/n):")
-    if confirm.lower() == 'y':
-        await handle_add_command([], *matching_files)
-        print_colored("Files added to the context.", Fore.GREEN)
-    else:
-        print_colored("Files not added to the context.", Fore.YELLOW)
+    selected_files = []
+    for idx, file in enumerate(matching_files, 1):
+        user_input = await get_input_async(f"[{idx}] {file} (checked by default, uncheck with 'n'): ")
+        if user_input.lower() != 'n':
+            selected_files.append(file)
+    
+    if not selected_files:
+        print_colored("No files selected to add to the context.", Fore.YELLOW)
+        return
+    
+    await handle_add_command([], *selected_files)
+    print_colored("Selected files added to the context.", Fore.GREEN)
 
 
 async def main():
