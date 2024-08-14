@@ -27,6 +27,7 @@ I see this framework as more suitable for people who actually want to code with 
 - `/save`: Save current chat
 - `/load`: Load a previous chat
 - `/undo <filepath>`: Undo last file edit
+- `/discover <keyword>`: Discover files with .py, .js, .ts extensions containing the keyword
 ## 🚀 Installation
 1. Clone the repository:
    ```

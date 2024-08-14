@@ -79,7 +79,7 @@ file_templates = {
 undo_history = {}
 stored_images = {}  # Add with your other globals!
 command_history = FileHistory('.aiconsole_history.txt')
-commands = WordCompleter(['/add', '/edit', '/new', '/search', '/image', '/clear', '/reset', '/diff', '/history', '/save', '/load', '/undo', 'exit'], ignore_case=True)
+commands = WordCompleter(['/add', '/edit', '/new', '/search', '/image', '/clear', '/reset', '/diff', '/history', '/save', '/load', '/undo', '/discover', 'exit'], ignore_case=True)
 session = PromptSession(history=command_history)
 
 async def get_input_async(message):
@@ -553,6 +553,9 @@ def print_welcome_message():
     print_colored("/undo", Fore.CYAN)
     print_colored(" <filepath>", Style.DIM)
     print_colored("Undo last edit for a specific file")
+    print_colored("/discover", Fore.CYAN)
+    print_colored(" <keyword>", Style.DIM)
+    print_colored("Discover files with .py, .js, .ts extensions containing the keyword")
     print_colored("exit", Fore.CYAN)
     print_colored("Exit the application")
     print_colored(
@@ -635,6 +638,7 @@ def print_welcome_message():
     table.add_row("/save", "Save chat history to a file")
     table.add_row("/load", "Load chat history from a file")
     table.add_row("/undo", "Undo last edit for a specific file")
+    table.add_row("/discover", "Discover files with .py, .js, .ts extensions containing the keyword")
     table.add_row("exit", "Exit the application")
     
     console.print(table)
@@ -648,6 +652,32 @@ def print_welcome_message():
         Fore.YELLOW,
     )
 
+
+async def handle_discover_command(keyword):
+    matching_files = []
+    for root, _, files in os.walk('.'):
+        for file in files:
+            if file.endswith(('.py', '.js', '.ts')):
+                file_path = os.path.join(root, file)
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    if keyword in content:
+                        matching_files.append(file_path)
+    
+    if not matching_files:
+        print_colored(f"No files found with the keyword '{keyword}'.", Fore.YELLOW)
+        return
+    
+    print_colored(f"Found {len(matching_files)} files with the keyword '{keyword}':", Fore.CYAN)
+    for idx, file in enumerate(matching_files, 1):
+        print_colored(f"{idx}. {file}", Fore.CYAN)
+    
+    confirm = await get_input_async("Do you want to add these files to the context? (y/n):")
+    if confirm.lower() == 'y':
+        await handle_add_command([], *matching_files)
+        print_colored("Files added to the context.", Fore.GREEN)
+    else:
+        print_colored("Files not added to the context.", Fore.YELLOW)
 
 
 async def main():
@@ -731,6 +761,11 @@ async def main():
         if prompt.startswith("/undo "):
             filepath = prompt.split("/undo ", 1)[1].strip()
             await handle_undo_command(filepath)
+            continue
+
+        if prompt.startswith("/discover "):
+            keyword = prompt.split("/discover ", 1)[1].strip()
+            await handle_discover_command(keyword)
             continue
 
         print_colored("\n🤖 Assistant:", Fore.BLUE)
