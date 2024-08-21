@@ -311,7 +311,7 @@ async def handle_add_command(chat_history, *paths):
 
     return chat_history
 
-async def handle_edit_command(default_chat_history, editor_chat_history, filepaths):
+async def handle_edit_command(default_chat_history, editor_chat_history, filepaths, error_message=None):
     all_contents = [read_file_content(fp) for fp in filepaths]
     valid_files, valid_contents = [], []
 
@@ -326,7 +326,10 @@ async def handle_edit_command(default_chat_history, editor_chat_history, filepat
         print_colored("❌ No valid files to edit.", Fore.YELLOW)
         return default_chat_history, editor_chat_history
 
-    user_request = await get_input_async(f"What would you like to change in {', '.join(valid_files)}?")
+    if error_message:
+        user_request = f"Fix the following error in {', '.join(valid_files)}: {error_message}"
+    else:
+        user_request = await get_input_async(f"What would you like to change in {', '.join(valid_files)}?")
 
     instructions_prompt = "For these files:\n"
     instructions_prompt += "\n".join([f"File: {fp}\n```\n{content}\n```\n" for fp, content in zip(valid_files, valid_contents)])
@@ -710,7 +713,7 @@ async def handle_test_command(filepath, *args):
             print_colored(error.strip(), Fore.RED)
             if "Traceback" in error or "Error" in error:
                 print_colored("❌ Error detected. Attempting to auto-correct using /edit...", Fore.YELLOW)
-                await handle_edit_command([], [], [filepath])
+                await handle_edit_command([], [], [filepath], error_message=error.strip())
                 process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
         if process.poll() is not None:
