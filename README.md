@@ -28,6 +28,7 @@ I see this framework as more suitable for people who actually want to code with 
 - `/load`: Load a previous chat
 - `/undo <filepath>`: Undo last file edit
 - `/discover <keyword>`: Discover files with .py, .js, .ts extensions containing the keyword
+- `/test <filepath> <args>`: Execute a Python file with arguments, listen for errors, and auto-correct using /edit
 ## 🚀 Installation
 1. Clone the repository:
    ```

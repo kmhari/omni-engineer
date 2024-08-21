@@ -24,7 +24,8 @@ from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.application.current import get_app
 import inquirer  # P3a00
-
+import subprocess  # Add this to your imports!
+import logging  # Add this to your imports!
 
 is_diff_on = True  
 
@@ -79,7 +80,7 @@ file_templates = {
 undo_history = {}
 stored_images = {}  # Add with your other globals!
 command_history = FileHistory('.aiconsole_history.txt')
-commands = WordCompleter(['/add', '/edit', '/new', '/search', '/image', '/clear', '/reset', '/diff', '/history', '/save', '/load', '/undo', '/discover', 'exit'], ignore_case=True)
+commands = WordCompleter(['/add', '/edit', '/new', '/search', '/image', '/clear', '/reset', '/diff', '/history', '/save', '/load', '/undo', '/discover', '/test', 'exit'], ignore_case=True)
 session = PromptSession(history=command_history)
 
 async def get_input_async(message):
@@ -556,6 +557,9 @@ def print_welcome_message():
     print_colored("/discover", Fore.CYAN)
     print_colored(" <keyword>", Style.DIM)
     print_colored("Discover files with .py, .js, .ts extensions containing the keyword")
+    print_colored("/test", Fore.CYAN)
+    print_colored(" <filepath> <args>", Style.DIM)
+    print_colored("Execute a Python file with arguments, listen for errors, and auto-correct using /edit")
     print_colored("exit", Fore.CYAN)
     print_colored("Exit the application")
     print_colored(
@@ -639,6 +643,7 @@ def print_welcome_message():
     table.add_row("/load", "Load chat history from a file")
     table.add_row("/undo", "Undo last edit for a specific file")
     table.add_row("/discover", "Discover files with .py, .js, .ts extensions containing the keyword")
+    table.add_row("/test", "Execute a Python file with arguments, listen for errors, and auto-correct using /edit")
     table.add_row("exit", "Exit the application")
     
     console.print(table)
@@ -687,6 +692,30 @@ async def handle_discover_command(keyword):
     
     await handle_add_command([], *selected_files)
     print_colored("Selected files added to the context.", Fore.GREEN)
+
+
+async def handle_test_command(filepath, *args):
+    """Execute a Python file with arguments, listen for errors, and auto-correct using /edit."""
+    command = ["python", filepath] + list(args)
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    while True:
+        output = process.stdout.readline()
+        error = process.stderr.readline()
+
+        if output:
+            print_colored(output.strip(), Fore.GREEN)
+        if error:
+            print_colored(error.strip(), Fore.RED)
+            if "Traceback" in error or "Error" in error:
+                print_colored("❌ Error detected. Attempting to auto-correct using /edit...", Fore.YELLOW)
+                await handle_edit_command([], [], [filepath])
+                process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        if process.poll() is not None:
+            break
+
+    return process.returncode
 
 
 async def main():
@@ -775,6 +804,13 @@ async def main():
         if prompt.startswith("/discover "):
             keyword = prompt.split("/discover ", 1)[1].strip()
             await handle_discover_command(keyword)
+            continue
+
+        if prompt.startswith("/test "):
+            parts = prompt.split()
+            filepath = parts[1]
+            args = parts[2:]
+            await handle_test_command(filepath, *args)
             continue
 
         print_colored("\n🤖 Assistant:", Fore.BLUE)
