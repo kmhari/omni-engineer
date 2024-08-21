@@ -679,7 +679,8 @@ async def handle_discover_command(keyword):
         inquirer.Checkbox(
             'files',
             message="Select files to add to context (checked by default):",
-            choices=[(file, True) for file in matching_files]
+            choices=matching_files,
+            default=matching_files,
         )
     ]
     
